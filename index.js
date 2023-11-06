@@ -33,27 +33,43 @@ async function run() {
         const database = client.db('stayNestDB');
         const collection = database.collection('stayNestCollection');
 
+
         app.get('/rooms', async(req, res)=>{
             const sortField = req.query.sortField;
+            const pageNumber = parseFloat(req.query.currentPage) ;
+            const itemsPerPage = parseFloat(req.query.itemsPerPage) ;
+            const skip = itemsPerPage * pageNumber ;
+            const limit = itemsPerPage ;
+            console.log('kkkkkkkk', pageNumber, itemsPerPage)
             const sortOrder = parseFloat(req.query.sortOrder);
             let sortObj = {};
             if(sortField && sortOrder){
                 sortObj[sortField] = sortOrder ;
             }
             console.log(sortObj)
+
+
             // console.log(sortField,sortOrder)
-            const cursor = collection.find().sort(sortObj)
+            const cursor = collection.find().skip(skip).limit(limit).sort(sortObj)
             const result  = await cursor.toArray();
             res.send(result)
         })
 
+
+
         app.get('/rooms/:id', async(req, res)=>{
             const id = req.params.id;
-            console.log('single room id:',id)
+            // console.log('single room id:',id)
             const query = { _id: new ObjectId(id)};
             const result = await collection.findOne(query);
             res.send(result)
 
+        })
+
+        app.get('/roomsCount', async(req, res)=>{
+            const totalRoom = await collection.estimatedDocumentCount();
+            // console.log(totalRoom)
+            res.send({totalRoom})
         })
 
 
