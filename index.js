@@ -34,7 +34,16 @@ async function run() {
         const collection = database.collection('stayNestCollection');
 
         app.get('/rooms', async(req, res)=>{
-            const result  = await collection.find().toArray();
+            const sortField = req.query.sortField;
+            const sortOrder = parseFloat(req.query.sortOrder);
+            let sortObj = {};
+            if(sortField && sortOrder){
+                sortObj[sortField] = sortOrder ;
+            }
+            console.log(sortObj)
+            // console.log(sortField,sortOrder)
+            const cursor = collection.find().sort(sortObj)
+            const result  = await cursor.toArray();
             res.send(result)
         })
 
