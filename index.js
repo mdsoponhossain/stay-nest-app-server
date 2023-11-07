@@ -32,6 +32,7 @@ async function run() {
       
         const database = client.db('stayNestDB');
         const collection = database.collection('stayNestCollection');
+        const userBooking = database.collection('userBooking');
 
 
         app.get('/rooms', async(req, res)=>{
@@ -40,13 +41,13 @@ async function run() {
             const itemsPerPage = parseFloat(req.query.itemsPerPage) ;
             const skip = itemsPerPage * pageNumber ;
             const limit = itemsPerPage ;
-            console.log('kkkkkkkk', pageNumber, itemsPerPage)
+            // console.log('kkkkkkkk', pageNumber, itemsPerPage)
             const sortOrder = parseFloat(req.query.sortOrder);
             let sortObj = {};
             if(sortField && sortOrder){
                 sortObj[sortField] = sortOrder ;
             }
-            console.log(sortObj)
+            // console.log(sortObj)
 
 
             // console.log(sortField,sortOrder)
@@ -70,6 +71,24 @@ async function run() {
             const totalRoom = await collection.estimatedDocumentCount();
             // console.log(totalRoom)
             res.send({totalRoom})
+        })
+
+
+        app.get('/my-bookings/:userEmail',async(req,res)=>{
+            const userEmail = req.params.userEmail ;
+            // const query = { person : userEmail};
+            const query = { person : userEmail};
+            console.log(123,query);
+            const cursor = await userBooking.find(query).toArray();
+            res.send(cursor)
+
+        })
+
+        app.post('/room-booking',async(req,res)=>{
+            const userBookingInfo = req.body
+            // console.log(userBookingInfo);
+            const result = await userBooking.insertOne(userBookingInfo);
+            res.send(result)
         })
 
 
