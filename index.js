@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express();
 const port = process.env.PORT || 5000;
@@ -10,7 +12,6 @@ app.use(express.json())
 
 
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.yfrjdbj.mongodb.net/?retryWrites=true&w=majority`;
 
 
@@ -78,7 +79,7 @@ async function run() {
             const userEmail = req.params.userEmail ;
             // const query = { person : userEmail};
             const query = { person : userEmail};
-            console.log(123,query);
+            // console.log(123,query);
             const cursor = await userBooking.find(query).toArray();
             res.send(cursor)
 
@@ -88,6 +89,14 @@ async function run() {
             const userBookingInfo = req.body
             // console.log(userBookingInfo);
             const result = await userBooking.insertOne(userBookingInfo);
+            res.send(result)
+        })
+
+        app.delete('/booking-delete/:deleteId',async(req, res)=>{
+            const deleteId = req.params.deleteId;
+            // console.log(999999,deleteId);
+            const query = { _id : new ObjectId(deleteId)};
+            const result = await userBooking.deleteOne(query);
             res.send(result)
         })
 
