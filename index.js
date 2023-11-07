@@ -92,6 +92,25 @@ async function run() {
             res.send(result)
         })
 
+
+
+        app.patch('/rooms-upadate/:id',async(req, res)=>{
+            const id = req.params.id;
+            const updateRoomInfo = req.body.availability
+            console.log("idddiddididididi",updateRoomInfo);
+            const filter = { _id : new ObjectId(id)}
+            const upadateDoc = {
+                $set :{
+                    availability : updateRoomInfo
+                }
+            }
+            console.log(100000,upadateDoc)
+            const result = await collection.updateOne(filter,upadateDoc);
+           res.send(result)
+        })
+
+
+
         app.delete('/booking-delete/:deleteId',async(req, res)=>{
             const deleteId = req.params.deleteId;
             // console.log(999999,deleteId);
