@@ -59,8 +59,9 @@ async function run() {
         const database = client.db('stayNestDB');
         const collection = database.collection('stayNestCollection');
         const userBooking = database.collection('userBooking');
+        const aboutUs = database.collection('aboutUs');
 
-
+//oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
         app.get('/rooms', async (req, res) => {
             const sortField = req.query.sortField;
             const pageNumber = parseFloat(req.query.currentPage);
@@ -81,6 +82,7 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result)
         })
+        //oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
 
 
@@ -112,6 +114,20 @@ async function run() {
 
         })
 
+
+        app.get('/about-us', async (req, res) => {
+            const userBookingInfo = req.body;
+
+            const cursor = aboutUs.find()
+            const result = await cursor.toArray();
+            res.send(result)
+        })
+
+
+
+
+
+
         app.post('/room-booking', async (req, res) => {
             const userBookingInfo = req.body;
 
@@ -124,12 +140,24 @@ async function run() {
 
         app.patch('/rooms-upadate/:id', async (req, res) => {
             const id = req.params.id;
-            const updateRoomInfo = req.body.availability
-            // console.log("idddiddididididi",updateRoomInfo);
+            const updateRoomInfo = req.body.availability;
+            // console.log(req.body.userFeedback)
+            // const review = req.body.userFeedback ;
+            // console.log("idddiddididididi",updateRoomInfo,id);
             const filter = { _id: new ObjectId(id) }
+            // const data = await collection.findOne(filter);
+            // const reviews = data.reviews
+            // reviews.push(review)
+
+            // console.log('find find find:',reviews)
+            
+                // const rating = [];
+                // rating.push(review)
+            
             const upadateDoc = {
                 $set: {
-                    availability: updateRoomInfo
+                    availability: updateRoomInfo,
+                    
                 }
             }
             // console.log(100000,upadateDoc)
@@ -137,6 +165,37 @@ async function run() {
             res.send(result)
         })
 
+
+
+
+        app.patch('/client-review/:id', async (req, res) => {
+            const id = req.params.id;
+            // const updateRoomInfo = req.body.availability;
+            console.log(req.body.userFeedback)
+            const review = req.body.userFeedback ;
+            console.log("idddiddididididi",/* updateRoomInfo, */id);
+            const filter = { _id: new ObjectId(id) }
+            const data = await collection.findOne(filter);
+            const reviews = data.reviews
+            reviews.push(review)
+
+            console.log('find find find:',reviews)
+            
+                const rating = [];
+                rating.push(review)
+            
+            const upadateDoc = {
+                $set: {
+                   reviews: reviews
+                }
+            }
+            console.log(100000,upadateDoc)
+            const result = await collection.updateOne(filter, upadateDoc);
+            res.send(result)
+        })
+
+
+        
 
 
         app.delete('/booking-delete/:deleteId', async (req, res) => {
