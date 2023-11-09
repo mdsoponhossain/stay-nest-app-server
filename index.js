@@ -7,27 +7,28 @@ require('dotenv').config()
 const app = express();
 const port = process.env.PORT || 5000;
 
-//middlewar ;user  & pass: 
+//middlewar ;
 app.use(express.json())
-app.use(cookieParser())
+
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: ['https://stay-nest.web.app','http://localhost:5173'],
     credentials: true
 }));
+app.use(cookieParser())
 
 const tokenVerify = (req, res, next) => {
     const token = req.cookies.token;
-    // console.log('ooooooooooooo',token);
+
     if (!token) {
-        return res.status(401).send("Unauthorized1212")
+        return res.status(401).send("Unauthorized")
     }
     jwt.verify(token, process.env.TOKEN_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(403).send('Forbidden1213')
+            return res.status(403).send('Forbidden')
         }
         else {
-            // console.log(9090, decoded);
-            req.user = decoded ;
+
+            req.user = decoded;
             next();
         }
     })
@@ -53,7 +54,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
 
         const database = client.db('stayNestDB');
@@ -61,20 +62,20 @@ async function run() {
         const userBooking = database.collection('userBooking');
         const aboutUs = database.collection('aboutUs');
 
-//oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
         app.get('/rooms', async (req, res) => {
             const sortField = req.query.sortField;
             const pageNumber = parseFloat(req.query.currentPage);
             const itemsPerPage = parseFloat(req.query.itemsPerPage);
             const skip = itemsPerPage * pageNumber;
             const limit = itemsPerPage;
-            // console.log('kkkkkkkk', pageNumber, itemsPerPage)
+
             const sortOrder = parseFloat(req.query.sortOrder);
             let sortObj = {};
             if (sortField && sortOrder) {
                 sortObj[sortField] = sortOrder;
             }
-            // console.log(sortObj)
+
 
 
             // console.log(sortField,sortOrder)
@@ -82,7 +83,7 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result)
         })
-        //oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
 
 
 
@@ -104,11 +105,11 @@ async function run() {
 
         app.get('/my-bookings/:userEmail', tokenVerify, async (req, res) => {
             const userEmail = req.params.userEmail;
-            if(req.user.email !== userEmail){
-                return res.status(403).send('Forbidden1214')
+            if (req.user.email !== userEmail) {
+                return res.status(403).send('Forbidden')
             }
             const query = { person: userEmail };
-            console.log(123,userEmail);
+            console.log(123, userEmail);
             const cursor = await userBooking.find(query).toArray();
             res.send(cursor)
 
@@ -140,62 +141,106 @@ async function run() {
 
         app.patch('/rooms-upadate/:id', async (req, res) => {
             const id = req.params.id;
-            const updateRoomInfo = req.body.availability;
-            // console.log(req.body.userFeedback)
-            // const review = req.body.userFeedback ;
-            // console.log("idddiddididididi",updateRoomInfo,id);
+            const updateRoomInfo = req.body.seat;
+            // const add = req.body.add;
+            // console.log(44, updateRoomInfo)
             const filter = { _id: new ObjectId(id) }
-            // const data = await collection.findOne(filter);
-            // const reviews = data.reviews
-            // reviews.push(review)
+            const data = await collection.findOne(filter);
+            const seat = data.seat;
+            const currentSeat = seat - updateRoomInfo;
+            // console.log(99999, data.seat)
+            // console.log(3333, seat - updateRoomInfo)
 
-            // console.log('find find find:',reviews)
-            
-                // const rating = [];
-                // rating.push(review)
-            
+            // console.log('add add ', add)
+
             const upadateDoc = {
                 $set: {
-                    availability: updateRoomInfo,
-                    
+                    seat: currentSeat,
                 }
             }
-            // console.log(100000,upadateDoc)
             const result = await collection.updateOne(filter, upadateDoc);
             res.send(result)
         })
+
+
+
+        //from delete ;
+        app.patch('/rooms-upadate-seat/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateRoomInfo = req.body.seat;
+            // const add = req.body.add;
+            console.log(44, updateRoomInfo)
+            const filter = { _id: new ObjectId(id) }
+            const data = await collection.findOne(filter);
+            const seat = data.seat;
+            const currentSeat = seat + updateRoomInfo;
+            console.log(99999, data.seat)
+            // console.log(3333, seat - updateRoomInfo)
+
+            // console.log('add add ', add)
+
+            const upadateDoc = {
+                $set: {
+                    seat: currentSeat,
+                }
+            }
+            const result = await collection.updateOne(filter, upadateDoc);
+            res.send(result)
+        })
+
+
+        //oooo
+
+        app.patch('/update-date/:id', async (req, res) => {
+            const id = req.params.id;
+            const date = req.body;
+            console.log(444, date.date)
+            console.log(111, id);
+            const filter = { _id: new ObjectId(id) }
+            // const data = await userBooking.findOne(filter);
+
+            const upadateDoc = {
+                $set: {
+                    date: date.date,
+                }
+            }
+            const result = await userBooking.updateOne(filter, upadateDoc);
+            res.send(result)
+
+        })
+
+
+
 
 
 
 
         app.patch('/client-review/:id', async (req, res) => {
             const id = req.params.id;
-            // const updateRoomInfo = req.body.availability;
-            console.log(req.body.userFeedback)
-            const review = req.body.userFeedback ;
-            console.log("idddiddididididi",/* updateRoomInfo, */id);
+            console.log(id)
+            const review = req.body.userFeedback;//from client-side
+            console.log(111,review)
             const filter = { _id: new ObjectId(id) }
             const data = await collection.findOne(filter);
-            const reviews = data.reviews
+            console.log(222,data)
+
+
+            const reviews = data.reviews //from db
             reviews.push(review)
 
-            console.log('find find find:',reviews)
-            
-                const rating = [];
-                rating.push(review)
-            
+            console.log('find find find:', reviews)
+
+
             const upadateDoc = {
                 $set: {
-                   reviews: reviews
+                    reviews: reviews
                 }
             }
-            console.log(100000,upadateDoc)
+
             const result = await collection.updateOne(filter, upadateDoc);
             res.send(result)
         })
 
-
-        
 
 
         app.delete('/booking-delete/:deleteId', async (req, res) => {
@@ -207,36 +252,46 @@ async function run() {
         })
 
 
+
+
         app.post('/access-token', async (req, res) => {
             const user = req.body;
-            // console.log('the user:',user);
+
             const token = jwt.sign(
                 user, process.env.TOKEN_SECRET, { expiresIn: '1h' }
             )
-            // console.log('token',token);
 
             res
-                .cookie('token', token, { httpOnly: true, secure: false })
-                .send({ seccess: true })
+                .cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+                })
+                .send({ success: true })
+
         })
 
 
         app.post('/clear-token', async (req, res) => {
             console.log('hello');
-            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+            res.clearCookie('token', {
+                maxAge: 0, secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
+            }).send({ success: true })
         })
 
 
 
-
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
         // await client.close();
     }
 }
+
+
 run().catch(console.dir);
 
 
@@ -248,3 +303,24 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
     console.log(`stay nest server is runnig on the port ${port}`)
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
