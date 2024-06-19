@@ -11,10 +11,10 @@ const port = process.env.PORT || 5000;
 app.use(express.json())
 
 app.use(cors({
-    origin: ['https://stay-nest.web.app','http://localhost:5173'],
+    origin: ['https://stay-nest-app.web.app', 'http://localhost:5173', 'https://incomparable-concha-9a1b2d.netlify.app'],
     credentials: true
 }));
-app.use(cookieParser())
+app.use(cookieParser());
 
 const tokenVerify = (req, res, next) => {
     const token = req.cookies.token;
@@ -60,6 +60,7 @@ async function run() {
         const database = client.db('stayNestDB');
         const collection = database.collection('stayNestCollection');
         const userBooking = database.collection('userBooking');
+        const registerCollection = database.collection('registerCollection');
         const aboutUs = database.collection('aboutUs');
 
 
@@ -78,7 +79,6 @@ async function run() {
 
 
 
-            // console.log(sortField,sortOrder)
             const cursor = collection.find().skip(skip).limit(limit).sort(sortObj)
             const result = await cursor.toArray();
             res.send(result)
@@ -89,7 +89,6 @@ async function run() {
 
         app.get('/rooms/:id', async (req, res) => {
             const id = req.params.id;
-            // console.log('single room id:',id)
             const query = { _id: new ObjectId(id) };
             const result = await collection.findOne(query);
             res.send(result)
@@ -98,18 +97,16 @@ async function run() {
 
         app.get('/roomsCount', async (req, res) => {
             const totalRoom = await collection.estimatedDocumentCount();
-            // console.log(totalRoom)
             res.send({ totalRoom })
         })
 
 
-        app.get('/my-bookings/:userEmail', tokenVerify, async (req, res) => {
+        app.get('/my-bookings/:userEmail', /* tokenVerify, */ async (req, res) => {
             const userEmail = req.params.userEmail;
-            if (req.user.email !== userEmail) {
-                return res.status(403).send('Forbidden')
-            }
-            const query = { person: userEmail };
-            console.log(123, userEmail);
+            // if (req.user.email !== userEmail) {
+            //     return res.status(403).send('Forbidden')
+            // }
+            const query = { booking_person: userEmail };
             const cursor = await userBooking.find(query).toArray();
             res.send(cursor)
 
@@ -118,7 +115,6 @@ async function run() {
 
         app.get('/about-us', async (req, res) => {
             const userBookingInfo = req.body;
-
             const cursor = aboutUs.find()
             const result = await cursor.toArray();
             res.send(result)
@@ -130,10 +126,42 @@ async function run() {
 
 
         app.post('/room-booking', async (req, res) => {
-            const userBookingInfo = req.body;
+            try {
+                let userBookingInfo = req?.body;
+                const result = await userBooking.insertOne(userBookingInfo);
+                res.send(result)
+            } catch (error) {
+            }
+        });
 
-            // console.log(userBookingInfo);
-            const result = await userBooking.insertOne(userBookingInfo);
+
+
+        app.post('/room-regitering', async (req, res) => {
+            try {
+               const userRegitering = req?.body;
+                const result = await registerCollection.insertOne(userRegitering);
+                res.send(result);
+            } catch (error) {
+            }
+        });
+
+
+        app.get('/room-regitering/:user', async (req, res) => {
+            try {
+               const userEmail = req?.params?.user;
+               const query = { user: userEmail };
+                const result = await registerCollection.find(query).toArray();
+                res.send(result);
+            } catch (error) {
+            }
+        });
+
+
+
+        app.delete('/registation-delete/:deleteId', async (req, res) => {
+            const deleteId = req.params.deleteId;
+            const query = { _id: new ObjectId(deleteId) };
+            const result = await registerCollection.deleteOne(query);
             res.send(result)
         })
 
@@ -142,17 +170,10 @@ async function run() {
         app.patch('/rooms-upadate/:id', async (req, res) => {
             const id = req.params.id;
             const updateRoomInfo = req.body.seat;
-            // const add = req.body.add;
-            // console.log(44, updateRoomInfo)
             const filter = { _id: new ObjectId(id) }
             const data = await collection.findOne(filter);
             const seat = data.seat;
             const currentSeat = seat - updateRoomInfo;
-            // console.log(99999, data.seat)
-            // console.log(3333, seat - updateRoomInfo)
-
-            // console.log('add add ', add)
-
             const upadateDoc = {
                 $set: {
                     seat: currentSeat,
@@ -168,17 +189,10 @@ async function run() {
         app.patch('/rooms-upadate-seat/:id', async (req, res) => {
             const id = req.params.id;
             const updateRoomInfo = req.body.seat;
-            // const add = req.body.add;
-            console.log(44, updateRoomInfo)
             const filter = { _id: new ObjectId(id) }
             const data = await collection.findOne(filter);
             const seat = data.seat;
             const currentSeat = seat + updateRoomInfo;
-            console.log(99999, data.seat)
-            // console.log(3333, seat - updateRoomInfo)
-
-            // console.log('add add ', add)
-
             const upadateDoc = {
                 $set: {
                     seat: currentSeat,
@@ -194,14 +208,10 @@ async function run() {
         app.patch('/update-date/:id', async (req, res) => {
             const id = req.params.id;
             const date = req.body;
-            console.log(444, date.date)
-            console.log(111, id);
             const filter = { _id: new ObjectId(id) }
-            // const data = await userBooking.findOne(filter);
-
             const upadateDoc = {
                 $set: {
-                    date: date.date,
+                    date_in_: date.date,
                 }
             }
             const result = await userBooking.updateOne(filter, upadateDoc);
@@ -217,20 +227,11 @@ async function run() {
 
         app.patch('/client-review/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id)
             const review = req.body.userFeedback;//from client-side
-            console.log(111,review)
             const filter = { _id: new ObjectId(id) }
             const data = await collection.findOne(filter);
-            console.log(222,data)
-
-
             const reviews = data.reviews //from db
             reviews.push(review)
-
-            console.log('find find find:', reviews)
-
-
             const upadateDoc = {
                 $set: {
                     reviews: reviews
@@ -241,11 +242,8 @@ async function run() {
             res.send(result)
         })
 
-
-
         app.delete('/booking-delete/:deleteId', async (req, res) => {
             const deleteId = req.params.deleteId;
-            // console.log(999999,deleteId);
             const query = { _id: new ObjectId(deleteId) };
             const result = await userBooking.deleteOne(query);
             res.send(result)
@@ -256,25 +254,18 @@ async function run() {
 
         app.post('/access-token', async (req, res) => {
             const user = req.body;
-
             const token = jwt.sign(
                 user, process.env.TOKEN_SECRET, { expiresIn: '1h' }
             )
-
-            res
-                .cookie('token', token, {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-                })
-                .send({ success: true })
-
+            res.cookie('stayNest_token', token, {
+                maxAge: 100000,secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+            }).send({ success: true })
         })
 
 
         app.post('/clear-token', async (req, res) => {
-            console.log('hello');
-            res.clearCookie('token', {
+            res.clearCookie('stayNest_token', {
                 maxAge: 0, secure: process.env.NODE_ENV === 'production',
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
             }).send({ success: true })
