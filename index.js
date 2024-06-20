@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const jwt = require('jsonwebtoken');
 var cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express();
@@ -10,17 +10,21 @@ const port = process.env.PORT || 5000;
 //middlewar ;
 app.use(express.json())
 
-app.use(cors({
-    origin: ['https://stay-nest-app.web.app', 'http://localhost:5173', 'https://incomparable-concha-9a1b2d.netlify.app'],
-    credentials: true
-}));
 app.use(cookieParser());
 
-const tokenVerify = (req, res, next) => {
-    const token = req.cookies.token;
+app.use(cors({
+    origin: ['https://stay-nest-app.web.app', 'http://localhost:5173', 'https://strong-crisp-1950e1.netlify.app'],
+    credentials: true
+}));
 
+
+
+
+
+const tokenVerify = (req, res, next) => {
+    const token = req?.cookies?.stayNest_token;
     if (!token) {
-        return res.status(401).send("Unauthorized")
+        return res?.status(401).send("Unauthorized")
     }
     jwt.verify(token, process.env.TOKEN_SECRET, (err, decoded) => {
         if (err) {
@@ -89,6 +93,7 @@ async function run() {
 
         app.get('/rooms/:id', async (req, res) => {
             const id = req.params.id;
+            // console.log('cookie:',req?.cookies)
             const query = { _id: new ObjectId(id) };
             const result = await collection.findOne(query);
             res.send(result)
@@ -101,11 +106,11 @@ async function run() {
         })
 
 
-        app.get('/my-bookings/:userEmail', /* tokenVerify, */ async (req, res) => {
+        app.get('/my-bookings/:userEmail', tokenVerify, async (req, res) => {
             const userEmail = req.params.userEmail;
-            // if (req.user.email !== userEmail) {
-            //     return res.status(403).send('Forbidden')
-            // }
+            if (req.user.email !== userEmail) {
+                return res.status(403).send('Forbidden Access')
+            }
             const query = { booking_person: userEmail };
             const cursor = await userBooking.find(query).toArray();
             res.send(cursor)
@@ -125,7 +130,7 @@ async function run() {
 
 
 
-        app.post('/room-booking', async (req, res) => {
+        app.post('/room-booking', tokenVerify, async (req, res) => {
             try {
                 let userBookingInfo = req?.body;
                 const result = await userBooking.insertOne(userBookingInfo);
@@ -136,9 +141,9 @@ async function run() {
 
 
 
-        app.post('/room-regitering', async (req, res) => {
+        app.post('/room-regitering', tokenVerify, async (req, res) => {
             try {
-               const userRegitering = req?.body;
+                const userRegitering = req?.body;
                 const result = await registerCollection.insertOne(userRegitering);
                 res.send(result);
             } catch (error) {
@@ -146,10 +151,13 @@ async function run() {
         });
 
 
-        app.get('/room-regitering/:user', async (req, res) => {
+        app.get('/room-regitering/:user', tokenVerify, async (req, res) => {
             try {
-               const userEmail = req?.params?.user;
-               const query = { user: userEmail };
+                const userEmail = req?.params?.user;
+                const query = { user: userEmail };
+                if (req.user.email !== userEmail) {
+                    return res.status(403).send('Forbidden')
+                }
                 const result = await registerCollection.find(query).toArray();
                 res.send(result);
             } catch (error) {
@@ -158,7 +166,7 @@ async function run() {
 
 
 
-        app.delete('/registation-delete/:deleteId', async (req, res) => {
+        app.delete('/registation-delete/:deleteId', tokenVerify, async (req, res) => {
             const deleteId = req.params.deleteId;
             const query = { _id: new ObjectId(deleteId) };
             const result = await registerCollection.deleteOne(query);
@@ -167,7 +175,7 @@ async function run() {
 
 
 
-        app.patch('/rooms-upadate/:id', async (req, res) => {
+        app.patch('/rooms-upadate/:id', tokenVerify, async (req, res) => {
             const id = req.params.id;
             const updateRoomInfo = req.body.seat;
             const filter = { _id: new ObjectId(id) }
@@ -186,7 +194,7 @@ async function run() {
 
 
         //from delete ;
-        app.patch('/rooms-upadate-seat/:id', async (req, res) => {
+        app.patch('/rooms-upadate-seat/:id', tokenVerify, async (req, res) => {
             const id = req.params.id;
             const updateRoomInfo = req.body.seat;
             const filter = { _id: new ObjectId(id) }
@@ -205,7 +213,7 @@ async function run() {
 
         //oooo
 
-        app.patch('/update-date/:id', async (req, res) => {
+        app.patch('/update-date/:id', tokenVerify, async (req, res) => {
             const id = req.params.id;
             const date = req.body;
             const filter = { _id: new ObjectId(id) }
@@ -225,7 +233,7 @@ async function run() {
 
 
 
-        app.patch('/client-review/:id', async (req, res) => {
+        app.patch('/client-review/:id', tokenVerify, async (req, res) => {
             const id = req.params.id;
             const review = req.body.userFeedback;//from client-side
             const filter = { _id: new ObjectId(id) }
@@ -242,7 +250,7 @@ async function run() {
             res.send(result)
         })
 
-        app.delete('/booking-delete/:deleteId', async (req, res) => {
+        app.delete('/booking-delete/:deleteId', tokenVerify, async (req, res) => {
             const deleteId = req.params.deleteId;
             const query = { _id: new ObjectId(deleteId) };
             const result = await userBooking.deleteOne(query);
@@ -252,13 +260,37 @@ async function run() {
 
 
 
+        // app.post('/access-token', async (req, res) => {
+        //     const user = req.body;
+        //     const token = jwt.sign(
+        //         user, process.env.TOKEN_SECRET, { expiresIn: '1h' }
+        //     )
+        //     res.cookie('stayNest_token', token, {
+        //         maxAge: 100000,secure: process.env.NODE_ENV === 'production',
+        //         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        //     }).send({ success: true })
+        // })
+
+        // app.post('/access-token', async (req, res) => {
+        //     const user = req.body;
+        //     const token = jwt.sign(
+        //         user, process.env.TOKEN_SECRET, { expiresIn: '1h' }
+        //     )
+        //     res.cookie('stayNest_token', token, {
+        //         httpOnly: true,
+        //         secure: true,
+        //         maxAge: 24 * 60 * 60 * 1000
+        //     }).send({ success: true })
+        // })
+
+
         app.post('/access-token', async (req, res) => {
             const user = req.body;
             const token = jwt.sign(
                 user, process.env.TOKEN_SECRET, { expiresIn: '1h' }
             )
             res.cookie('stayNest_token', token, {
-                maxAge: 100000,secure: process.env.NODE_ENV === 'production',
+                maxAge: 24*60*60*1000, secure: process.env.NODE_ENV === 'production',
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             }).send({ success: true })
         })
